@@ -1,0 +1,15 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "macos-llvm",
+      "displayName": "macOS Homebrew LLVM",
+      "description": "Uses modern Homebrew Clang for C++20 Modules",
+      "generator": "Ninja", 
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "/opt/homebrew/opt/llvm/bin/clang++"
+      }
+    }
+  ]
+}
