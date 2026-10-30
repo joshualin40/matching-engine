@@ -23,6 +23,7 @@ namespace me {
             std::expected<std::vector<Trade>, RejectReason> addOrder(Order order) { // TODO: replace the commented out code by calling the helper function 
                 if (order.quantity == 0) return std::unexpected(RejectReason::ZeroQuantity); 
                 if (pool.isFull()) return std::unexpected(RejectReason::PoolFull); 
+                if (lookup.contains(order.id)) return std::unexpected(RejectReason::DuplicateId); 
 
                 std::vector<Trade> tradelist; 
                 Price price = order.price;
@@ -45,12 +46,10 @@ namespace me {
                 if (it != lookup.end()) {
                     Order* orderptr = it->second; 
                     if (orderptr->side == Side::Buy) {
-                        bids[orderptr->price].totalquantity -= orderptr->quantity; 
                         bids[orderptr->price].remove(orderptr);
                         if (bids[orderptr->price].isEmpty()) bids.erase(orderptr->price); 
                     }
                     else { 
-                        asks[orderptr->price].totalquantity -= orderptr->quantity; 
                         asks[orderptr->price].remove(orderptr);
                         if (asks[orderptr->price].isEmpty()) asks.erase(orderptr->price); 
                     }
@@ -60,7 +59,7 @@ namespace me {
                 }
                 else return false; 
             }
-
+            
             std::optional<Price> getBid() const {
                 if (!bids.empty()) return bids.begin()->first; // use  iterator to get last pricelevel
                 else return std::nullopt; 
@@ -80,6 +79,12 @@ namespace me {
                     std::cout << "$" << it->first << ": " << it->second.totalquantity << "\n"; 
             }
 
+            bool validate() const {
+                for (auto it = asks.begin(); it != asks.end(); ++it) if (!(it->second.validate())) return false; 
+                for (auto it = bids.begin(); it != bids.end(); ++it) if (!(it->second.validate())) return false; 
+                return true; 
+            }
+
         private:
             // TODO: implement an intrusive list, such that each order carries its own prev/next pointers, orders live in a preallocated pool, and the lookup maps id to pointer
             // (Optimize)
@@ -89,12 +94,15 @@ namespace me {
 
             std::map<Price, PriceLevel, std::greater<Price>> bids; // sorted list for bids. descending (best bid is highest) 
             
-            std::unordered_map<OrderId, Order*> lookup; 
-        
+            std::unordered_map<OrderId, Order*> lookup; // O(1) lookup
+
+            // SOLID principles
+                // single responsibility: each function should have one responsibility
+                // functions should be able to be OPEN for new features, but CLOSED for modifcation
             // Takes order and its opposite side and does all the matching 
             // returns a list of all Trade's that occured 
             template <typename T> 
-            std::vector<Trade> match(T& matchmap, Order& order) {
+            std::vector<Trade> match(T& matchmap, Order& order) { // refactor to only pass in order
                 Price price = order.price; 
                 std::vector<Trade> tradelist; 
                 auto comp = matchmap.key_comp(); // comp(a,b) returns true if a comes before b in the map ordering 
@@ -117,6 +125,7 @@ namespace me {
                 
                 return tradelist; 
             }
+            
     
             // Helper function to help add incoming resting Orders to the side's level at its price, and add it to the lookup
             // returns pointer to the slot 
@@ -132,5 +141,4 @@ namespace me {
                 return slot; 
             }
         };
-
 }

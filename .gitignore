@@ -1,8 +1,9 @@
 # Build output
 build/
+build-debug/
 out/
 cmake-build-*/
-bin/
+bin/git push origin --delete <your-branch-name>
 lib/
 
 # Ignore local VS Code cache state

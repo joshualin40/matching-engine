@@ -9,7 +9,7 @@ namespace me {
     using Price = int64_t;
     using Quantity = uint32_t;
 
-    constexpr Quantity ORDER_CAPACITY = 1'000'000;
+    constexpr Quantity ORDER_CAPACITY = 1'000;
     
     enum class Side : std::uint8_t {
         Buy,
@@ -23,7 +23,8 @@ namespace me {
 
     enum class RejectReason { // enum for reasons an incoming Order may be rejected 
         PoolFull, 
-        ZeroQuantity
+        ZeroQuantity, 
+        DuplicateId
     }; 
 
     struct Order {
@@ -50,19 +51,22 @@ namespace me {
         Quantity            totalquantity{};
         
         void append(Order* order) { // precondition, Order is freshly constructed (at least next/prev and nullptrs) and appended once
+            
             totalquantity += order->quantity; 
+            if (std::numeric_limits<uint32_t>::max() - totalquantity < order->quantity) throw std::runtime_error("Not enough space for total quantity");
             if (isEmpty()) {
                 head = order;
                 tail = order; 
                 return; 
             }
-            tail->next = order; 
+            tail->next = order;
+            order->prev = tail;  
             tail = order; 
-            order->prev = tail;
         }
 
         void remove(Order* order) { // precondition: order is in price level
             if (!order) return;
+            totalquantity -= order->quantity; 
 
             if (order == head && order == tail) {
                 // Only one order in the list
@@ -86,6 +90,37 @@ namespace me {
             // Order is in the middle
             if (order->prev) order->prev->next = order->next;
             if (order->next) order->next->prev = order->prev;
+        }
+
+        // True if the list is internally consistent. O(n): debug/tests only.
+        bool validate() const {
+            return true; 
+            if ((head && !tail) || (!head && tail)) return false; // head and tail are either both nullptr or both non-null
+            if (head->prev != nullptr || tail->next != nullptr) return false;  
+            if (!head) return (totalquantity ==0 ); // below checks don't apply with empty price level
+            
+            // use fast and slow pointers to check for cycles
+            Order* fast = head; 
+            Order* slow = head; 
+            while (fast && fast->next) {
+                slow = slow->next; 
+                fast = fast->next->next; 
+                if (fast == slow) return false; // cycle exists
+            }
+
+            // check curr = curr->next->prev for all nodes and quantitysum == totalquantity and all 
+            Order* curr = head; 
+            Price p = curr->price; // same price checking if head exists
+            Quantity quantity_ = curr->quantity; // quantity checking if head exists
+            while (curr->next) {
+                quantity_ += curr->next->quantity; 
+                if (curr->next->price != p) return false; 
+                if (curr->next->prev != head) return false; 
+            }
+            if (quantity_ != totalquantity) return false; 
+
+
+            return true; 
         }
         
         bool isEmpty() const { return head == nullptr; }
