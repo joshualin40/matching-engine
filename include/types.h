@@ -116,6 +116,7 @@ namespace me {
                 quantity_ += curr->next->quantity; 
                 if (curr->next->price != p) return false; 
                 if (curr->next->prev != head) return false; 
+                curr = curr->next; 
             }
             if (quantity_ != totalquantity) return false; 
 
