@@ -116,8 +116,9 @@ namespace me {
                         else tradelist.push_back(Trade(pricelevel.head->id, order.id, pricelevel.head->price, decrement)); 
                         if (pricelevel.head->quantity == 0) {
                             lookup.erase(pricelevel.head->id); 
-                            pool.deallocate(pricelevel.head); 
-                            pricelevel.remove(pricelevel.head);
+                            Order* filled = pricelevel.head;
+                            pool.deallocate(filled);
+                            pricelevel.remove(filled);
                         }
                         if (pricelevel.isEmpty()) matchmap.erase(matchmap.begin()); 
                         if (order.quantity == 0) return tradelist; 
