@@ -45,13 +45,11 @@ namespace me {
     };
 
     struct PriceLevel {
-        // std::list<Order>    orderlist{}; 
         Order*              head{nullptr}; 
         Order*              tail{nullptr};   
         Quantity            totalquantity{};
         
         void append(Order* order) { // precondition, Order is freshly constructed (at least next/prev and nullptrs) and appended once
-            
             totalquantity += order->quantity; 
             if (std::numeric_limits<uint32_t>::max() - totalquantity < order->quantity) throw std::runtime_error("Not enough space for total quantity");
             if (isEmpty()) {
@@ -94,7 +92,6 @@ namespace me {
 
         // True if the list is internally consistent. O(n): debug/tests only.
         bool validate() const {
-            return true; 
             if ((head && !tail) || (!head && tail)) return false; // head and tail are either both nullptr or both non-null
             if (head->prev != nullptr || tail->next != nullptr) return false;  
             if (!head) return (totalquantity ==0 ); // below checks don't apply with empty price level
