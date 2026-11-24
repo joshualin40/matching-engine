@@ -1,13 +1,13 @@
-# mentino modern cpp 20 modules support 
+# Bug Log
 
-# addition of memory pool
-    # operator new is expensive 
-    # prevent fragmentation 
+- Issue: After cancelling a tail. Order at a price level, the elements before are inaccessible 
+- Reason: in PriceLevel::append(), tail is reassigned before order->prev is set so order->prev points at itself. Then 
+removing a tail order would not reassign the tail pointer properly. 
+- Reason: in Orderbook::match(), it frees the filled Order back to the pool before remove() unlinked it, so remove() read order->next from memory the pool already owned and might have overwritten.
+- Fix: 
+    - set Order->prev before reassigning tail pointer in PriceLevel
+    - added invariant validation methods in PriceLevel struct and Orderbook class
+    - Added AddressSanitizer Poisoning to Pool memory to more strictly enforce memory usage
 
-    # only one thread can access free list memory at once 
 
-    # the C++ memory allocator must speak to the OS kernel. OS does a syscall
-        # the new operator takes an extra step because the CPU needs to switch into kernel mode, and back into user mode 
-        # other issues include fragmentation -> heap becomes fragmented after many calls to new 
-
-    # memory pool -> a bag of many fix sized slots of memory that can you take and give back 
+git 

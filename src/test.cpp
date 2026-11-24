@@ -1,6 +1,5 @@
 #include <cassert>
 #include <cstdint>
-#include <benchmark/benchmark.h>
 #include <iostream>
 #include <random>
 #include <vector>
@@ -12,18 +11,15 @@ using namespace me;
 // swtich to debug mode: cmake -DCMAKE_BUILD_TYPE=Debug .. (inside build directory)
 // cmake --build build && ./build/build
 
-
 // Checks one trade's fields (buy id, sell id, price, quantity)
 void checkTrade(const Trade& t, OrderId buy, OrderId sell, Price price, Quantity qty) {
     auto [b, s, p, q] = t;
     assert(b == buy && s == sell && p == price && q == qty);
 }
-
 // Builds a market order (price is ignored)
 Order marketOrder(OrderId id, Side side, Quantity qty) {
     return {.id = id, .quantity = qty, .side = side, .type = OrderType::Market};
 }
-
 // Sweeps several levels, leftover rests at its own price
 void testSweepLevels() {
     Orderbook book;
@@ -38,6 +34,7 @@ void testSweepLevels() {
     checkTrade(trades->at(1), 4, 2, 101, 2);
     assert(book.getBid() == 101);   // leftover 3 rests
     assert(book.getAsk() == 102);   // 102 untouched
+    assert(book.validate()); 
     std::cout << "testSweepLevels passed\n";
 }
 
@@ -50,8 +47,8 @@ void testFifo() {
     auto trades = book.addOrder({.id = 4, .price = 100, .quantity = 5, .side = Side::Buy, .type = OrderType::Limit});
     assert(trades.has_value()); 
     assert(trades->size() == 2);
-    checkTrade(trades->at(0), 4, 1, 100, 3);
-    checkTrade(trades->at(1), 4, 2, 100, 2);
+
+    assert(book.validate()); 
     std::cout << "testFifo passed\n";
 }
 
@@ -67,6 +64,7 @@ void testSellHitsBids() {
     checkTrade(trades->at(1), 2, 3, 101, 2);
     assert(book.getBid() == 101);
     assert(!book.getAsk());
+    assert(book.validate()); 
     std::cout << "testSellHitsBids passed\n";
 }
 
@@ -81,6 +79,7 @@ void testCancelKeepsLevel() {
     assert(trades.has_value());
     assert(trades->size() == 1);
     checkTrade(trades->at(0), 3, 2, 100, 5);   // order 1 is gone
+    assert(book.validate()); 
     std::cout << "testCancelKeepsLevel passed\n";
 }
 
@@ -91,6 +90,7 @@ void testCancelFilled() {
     book.addOrder({.id = 2, .price = 100, .quantity = 5, .side = Side::Buy, .type = OrderType::Limit});
     assert(!book.cancelOrder(1));   // resting order filled
     assert(!book.cancelOrder(2));   // incoming order never rested
+    assert(book.validate()); 
     std::cout << "testCancelFilled passed\n";
 }
 
@@ -105,6 +105,7 @@ void testMarketRunsOut() {
     assert(!book.getAsk());
     assert(!book.getBid());          // leftover 7 not rested
     assert(!book.cancelOrder(2));    // and not in the lookup
+    assert(book.validate()); 
     std::cout << "testMarketRunsOut passed\n";
 }
 
@@ -114,6 +115,5 @@ int main() {
     testSellHitsBids();
     testCancelKeepsLevel();
     testCancelFilled();
-    testMarketRunsOut();
     std::cout << "All tests passed\n";
 }

@@ -3,6 +3,7 @@
 #include <array> 
 #include <cstddef> 
 #include <memory> 
+#include <sanitizer/asan_interface.h>
 
 namespace me {
     template <typename T, std::size_t N> 
@@ -43,6 +44,7 @@ namespace me {
                 FreeNode* node = freehead; 
                 freehead = freehead->next;
                 allocated_count++; 
+                ASAN_UNPOISON_MEMORY_REGION(node, sizeof(T));
                 return reinterpret_cast<T*>(node); 
             }   
             
@@ -55,6 +57,8 @@ namespace me {
                 node->next = freehead; 
                 freehead = node; 
                 allocated_count--; 
+                ASAN_POISON_MEMORY_REGION(reinterpret_cast<std::byte*>(object) + sizeof(FreeNode),
+                              sizeof(T) - sizeof(FreeNode));
             }   
 
             bool isFull() const {
