@@ -144,7 +144,8 @@ namespace me
                     return false; // cycle exists
             }
 
-            Order *curr = head;             
+            Order *curr = head;     
+            Price headprice = head->price;         
             Quantity quantity_ = curr->quantity; 
             while (curr->next)
             {
@@ -152,6 +153,8 @@ namespace me
                 if (curr->next->prev != curr)
                     return false;
                 curr = curr->next;
+                if (curr->price != headprice)
+                    return false; 
             }
             if (quantity_ != totalquantity)
                 return false;
